@@ -72,6 +72,8 @@ public class WebController {
 		try {
 			jedis = new Jedis(redisHostName, redisPort);    //try to connect to redis
 			jedis.auth(password);
+			LOGGER.log(Level.INFO, "Pinging Redis...");
+			jedis.ping();
 			redisConnected = true;
 			LOGGER.log(Level.INFO, "Successfully connected to Redis!");
 		}
@@ -126,6 +128,8 @@ public class WebController {
 			try {
 				jedis = new Jedis(redisHostName, redisPort);    //try to connect to redis
 				jedis.auth(password);
+				LOGGER.log(Level.INFO, "Pinging Redis...");
+				jedis.ping();
 				redisConnected = true;
 				LOGGER.log(Level.INFO, "Successfully reconnected to Redis");
 				return;
