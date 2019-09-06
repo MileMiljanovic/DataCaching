@@ -88,6 +88,8 @@ public class Listener {
 		try {			
 			jedis = new Jedis(host, port);    //try to connect to redis
 			jedis.auth(password);
+			LOGGER.log(Level.INFO, "Pinging Redis...");
+			jedis.ping();
 			kafkaListenerEndpointRegistry.start();   //enable message consumption from kafka
 			LOGGER.log(Level.INFO, "Connection to redis successful!");
 		}
