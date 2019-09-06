@@ -172,8 +172,10 @@ public class Listener {
 		hmap.put("attribute5", String.valueOf(m.getAttribute5()));
 		hmap.put("attribute6", String.valueOf(m.getAttribute6()));
 		try {
-			jedis.hmset(m.getId(), hmap);   //add a new hash to redis		
-			jedis.set(m.getRowId(), m.getId()); //HELPER STRCUTURE FOR DELETE
+			jedis.hmset(m.getId(), hmap);   //add a new hash to redis
+			if (m.getOperation().equals("INSERT")) {
+				jedis.set(m.getRowId(), m.getId()); //HELPER STRCUTURE FOR DELETE
+			}
 			Date writeTime = new Date();
 			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 			Date creationTime = sdf.parse(m.getCreationTime());
