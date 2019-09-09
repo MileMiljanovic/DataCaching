@@ -51,79 +51,11 @@ public class Main {
                 			String rowId = dce.getTableChangeDescription()[0].getRowChangeDescription()[i].getRowid().stringValue();
                 			if(event.trim().equals("INSERT") || event.trim().equals("UPDATE") || event.trim().equals("DELETE")) {
 		                        try {
-			                        Statement stmt = conn.createStatement();
-			                       /* ResultSet rs = null;
 			                        if(event.trim().equals("DELETE")) {
-			                        	rs = stmt.executeQuery("select * from USERS as of timestamp(sysdate - interval '50' second) where ROWID='" + rowId + "'");
-			                        }
-			                        else
-			                        {
-			                        	ResultSet rs = stmt.executeQuery("select * from USERS where ROWID='" + rowId + "'");
-			                        }*/
-			                        if(event.trim().equals("DELETE")) {
-			                        	Model m = new Model();
-			                        	Date d = new Date();
-			                			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-			                			String strDate = sdf.format(d);
-			                			m.setOperation(event);
-			                			m.setRowId(rowId);
-			                			m.setCreationTime(strDate);
-			                			try {
-				                			String jsonMessage = serialize(m);
-				            	    		final ProducerRecord<Long, String> record = new ProducerRecord<>(TOPIC, jsonMessage);
-				            	            RecordMetadata metadata = producer.send(record).get();
-				            	            System.out.println("MESSAGE SENT TO TOPIC " + TOPIC + ". Content: " + jsonMessage);
-			                			}
-			                			catch (Exception e) {
-			                				e.printStackTrace();
-			                			}
+			                        	deleteRow(event, rowId, producer);
 			                        }
 			                        else {
-				                        ResultSet rs = stmt.executeQuery("select * from USERS where ROWID='" + rowId + "'");
-				                        while (rs.next()) {
-				                        	String id = rs.getString("id");
-				                        	String username = rs.getString("username");
-				                        	String pass = rs.getString("password");
-				                        	Integer age = rs.getInt("age");
-				                        	String gender = rs.getString("gender");
-				                        	String attribute1 = rs.getString("attribute1");
-				                        	String attribute2 = rs.getString("attribute2");
-				                        	String attribute3 = rs.getString("attribute3");
-				                        	String attribute4 = rs.getString("attribute4");
-				                        	String attribute5 = rs.getString("attribute5");
-				                        	String attribute6 = rs.getString("attribute6");
-				                        	System.out.println("CHANGED ROW: " + id + "; " + username + "; " + pass + "; " +  age + "; " +  gender + "; " + 
-				                        			attribute1 + "; " +  attribute2 + "; " +  attribute3 + "; " + attribute4 + "; " + attribute5 + "; " + attribute6);
-				                        	Model m = new Model();
-				                        	Date d = new Date();
-				                			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-				                			String strDate = sdf.format(d);
-				                			m.setId(id);
-				                			m.setUsername(username);
-				                			m.setPassword(pass);
-				                			m.setAge(age);
-				                			m.setGender(gender);
-				                			m.setAttribute1(attribute1);
-				                			m.setAttribute2(attribute2);
-				                			m.setAttribute3(attribute3);
-				                			m.setAttribute4(attribute4);
-				                			m.setAttribute5(attribute5);
-				                			m.setAttribute6(attribute6);
-				                			m.setCreationTime(strDate);
-				                			m.setOperation(event);
-				                			m.setRowId(rowId);
-				                			try {
-					                			String jsonMessage = serialize(m);
-					            	    		final ProducerRecord<Long, String> record = new ProducerRecord<>(TOPIC, jsonMessage);
-					            	            RecordMetadata metadata = producer.send(record).get();
-					            	            System.out.println("MESSAGE SENT TO TOPIC " + TOPIC + ". Content: " + jsonMessage);
-				                			}
-				                			catch (Exception e) {
-				                				e.printStackTrace();
-				                			}
-				                        }
-				                        rs.close();
-				                        stmt.close();
+			                        	upsertRow(event, rowId, producer, conn);
 			                        }
 		                        }
 		                        catch (SQLException ex) {
@@ -152,6 +84,74 @@ public class Main {
         }
 
 	}
+    
+    public static void deleteRow(String event, String rowId, Producer<Long, String> producer) {
+    	Model m = new Model();
+    	Date d = new Date();
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+		String strDate = sdf.format(d);
+		m.setOperation(event);
+		m.setRowId(rowId);
+		m.setCreationTime(strDate);
+		try {
+			String jsonMessage = serialize(m);
+    		final ProducerRecord<Long, String> record = new ProducerRecord<>(TOPIC, jsonMessage);
+            RecordMetadata metadata = producer.send(record).get();
+            System.out.println("MESSAGE SENT TO TOPIC " + TOPIC + ". Content: " + jsonMessage);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+    }
+    
+    public static void upsertRow(String event, String rowId, Producer<Long, String> producer, OracleConnection conn) throws SQLException {
+    	Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from USERS where ROWID='" + rowId + "'");
+        while (rs.next()) {
+        	String id = rs.getString("id");
+        	String username = rs.getString("username");
+        	String pass = rs.getString("password");
+        	Integer age = rs.getInt("age");
+        	String gender = rs.getString("gender");
+        	String attribute1 = rs.getString("attribute1");
+        	String attribute2 = rs.getString("attribute2");
+        	String attribute3 = rs.getString("attribute3");
+        	String attribute4 = rs.getString("attribute4");
+        	String attribute5 = rs.getString("attribute5");
+        	String attribute6 = rs.getString("attribute6");
+        	System.out.println("CHANGED ROW: " + id + "; " + username + "; " + pass + "; " +  age + "; " +  gender + "; " + 
+        			attribute1 + "; " +  attribute2 + "; " +  attribute3 + "; " + attribute4 + "; " + attribute5 + "; " + attribute6);
+        	Model m = new Model();
+        	Date d = new Date();
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+			String strDate = sdf.format(d);
+			m.setId(id);
+			m.setUsername(username);
+			m.setPassword(pass);
+			m.setAge(age);
+			m.setGender(gender);
+			m.setAttribute1(attribute1);
+			m.setAttribute2(attribute2);
+			m.setAttribute3(attribute3);
+			m.setAttribute4(attribute4);
+			m.setAttribute5(attribute5);
+			m.setAttribute6(attribute6);
+			m.setCreationTime(strDate);
+			m.setOperation(event);
+			m.setRowId(rowId);
+			try {
+    			String jsonMessage = serialize(m);
+	    		final ProducerRecord<Long, String> record = new ProducerRecord<>(TOPIC, jsonMessage);
+	            RecordMetadata metadata = producer.send(record).get();
+	            System.out.println("MESSAGE SENT TO TOPIC " + TOPIC + ". Content: " + jsonMessage);
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+        }
+        rs.close();
+        stmt.close();
+    }
 	
 	
 	public static OracleConnection connect() throws SQLException {
