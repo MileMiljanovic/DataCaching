@@ -4,29 +4,25 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
-
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.stereotype.Service;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.JedisCluster;
+import java.util.HashSet;
 
 
 @Service
@@ -61,12 +57,8 @@ public class Listener {
 	@PostConstruct
 	public void init() throws InterruptedException, SecurityException, IOException {
 		
-		//upon bean creation disable default logger handlers
-		LOGGER.setUseParentHandlers(false);
-		Level level = Level.parse(loggingLevel);  //get logging level specified in properties
-		//then initialize logger handler (output file)
-		setLoggerHandler(level);  //set new handlers
-		LOGGER.setLevel(level);  //set the level to the one specified in properties
+		//initialize logger handler (output file and console)
+		setLoggerHandler();  //set new handlers
 		LOGGER.log(Level.INFO, "Kafka consumer initialized!");
 		//initialize connection towards redis
 		initializeRedis();
@@ -104,7 +96,11 @@ public class Listener {
 		}
 	}
 	
-	public void setLoggerHandler(Level l) throws SecurityException, IOException {
+	public void setLoggerHandler() throws SecurityException, IOException {
+		
+		//upon bean creation disable default logger handlers
+		LOGGER.setUseParentHandlers(false);
+		Level level = Level.parse(loggingLevel);  //get logging level specified in properties
 		
 		FileHandler handler = new FileHandler(loggingFile, true);	//create new file handler, specify path and append flag
 		handler.setFormatter(new SimpleFormatter() {
@@ -122,8 +118,9 @@ public class Listener {
 		LOGGER.addHandler(handler);	//add a file handler to the logger
 		ConsoleHandler chandler = new ConsoleHandler();	 //create a console handler and add it to the logger
 		LOGGER.addHandler(chandler);
-		handler.setLevel(l);	//set the logging level of the handler as specified in properties
-		chandler.setLevel(l);
+		handler.setLevel(level);	//set the logging level of the handler as specified in properties
+		chandler.setLevel(level);
+		LOGGER.setLevel(level);  //set the level to the one specified in properties
 	}
 	
 	@KafkaListener(topics = "${kafka.topic}", id = "kafkalistener", groupId = "${kafka.group.id}")
@@ -210,7 +207,7 @@ public class Listener {
 					" Time to process from kafka to redis: " + diffKafkaConsumer + " ms.");
 		}
 		catch (Exception e) {
-			LOGGER.log(Level.SEVERE, "Deleting Redis has failed!");
+			LOGGER.log(Level.SEVERE, "Deleting from Redis has failed!");
 			LOGGER.log(Level.SEVERE, "CAUSE: "  + e.getCause() + "; ERROR MESSAGE - " + e.getMessage());
 			initializeRedis();   //if we lost the connection to redis, attempt to reconnect
 		}

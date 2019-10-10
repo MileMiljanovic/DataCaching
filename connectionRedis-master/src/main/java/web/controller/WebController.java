@@ -14,10 +14,8 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
@@ -25,10 +23,6 @@ import org.springframework.web.bind.annotation.RestController;
 import redis.clients.jedis.Jedis;
 
 @RestController
-
-@PropertySource("application.properties")
-@Service
-//@EnableCircuitBreaker
 public class WebController {
 
 	private Jedis jedis;
@@ -59,34 +53,16 @@ public class WebController {
 	@PostConstruct
 	void init() throws SecurityException, IOException {
 		
+		setLoggerHandler();  //set new handlers
+		redisConnected = false;  //initially we are not connected to redis
+		LOGGER.log(Level.INFO, "REST API initialized!");
+		connectThread();  //attempt to connect to redis
+	}
+	
+	public void setLoggerHandler() throws SecurityException, IOException {
+		
 		LOGGER.setUseParentHandlers(false); //disable default handlers
 		Level level = Level.parse(loggingLevel);  //get logging level specified in properties
-		setLoggerHandler(level);  //set new handlers
-		LOGGER.setLevel(level);  //set the level to the one specified in properties
-		LOGGER.log(Level.INFO, "REST API initialized!");
-		initializeRedis();
-	}
-	
-	public void initializeRedis() {
-		
-		try {
-			jedis = new Jedis(redisHostName, redisPort);    //try to connect to redis
-			jedis.auth(password);
-			LOGGER.log(Level.INFO, "Pinging Redis...");
-			jedis.ping();
-			redisConnected = true;
-			LOGGER.log(Level.INFO, "Successfully connected to Redis!");
-		}
-		catch (Exception e) {	//if connecting to redis was not successful
-			jedis.close();   //close session
-			redisConnected = false;
-			LOGGER.log(Level.SEVERE, "Connecting to Redis failed! Cause: " + e.getCause() + ", Details: " + e.getMessage());
-			retryThread();  //init retry mechanism
-		}
-	}
-	
-	public void setLoggerHandler(Level level) throws SecurityException, IOException {
-		
 		FileHandler handler = new FileHandler(loggingFile, true);
 		handler.setFormatter(new SimpleFormatter() {
             private static final String format = "[%1$tF %1$tT.%1$tL] [%2$-7s] %3$s %n";
@@ -105,14 +81,15 @@ public class WebController {
 		LOGGER.addHandler(chandler);
 		handler.setLevel(level);
 		chandler.setLevel(level);
+		LOGGER.setLevel(level);  //set the level to the one specified in properties
 	}
 	
-	public void retryThread() {
+	public void connectThread() {
 		new Thread() {
 		    @Override
 		    public void run() {
 		        try {
-					retryRedis();	// start a separate thread which will retry to connect to redis
+					connectRedis();	// start a separate thread which will retry to connect to redis
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					LOGGER.log(Level.SEVERE, "Exception has occured! Cause: " + e.getCause() + ", Details: " + e.getMessage());
@@ -121,7 +98,7 @@ public class WebController {
 		}.start();
 	}
 	
-	public void retryRedis() throws InterruptedException {
+	public void connectRedis() throws InterruptedException {
 		
 		while (!redisConnected) {
 			
@@ -131,15 +108,15 @@ public class WebController {
 				LOGGER.log(Level.INFO, "Pinging Redis...");
 				jedis.ping();
 				redisConnected = true;
-				LOGGER.log(Level.INFO, "Successfully reconnected to Redis");
-				return;
+				LOGGER.log(Level.INFO, "Successfully connected to Redis");
 			}
+			
 			catch (Exception e) {	//if connecting to redis was not successful
 				jedis.close();   //close session
 				redisConnected = false;
-				LOGGER.log(Level.SEVERE, "Reconnecting to redis failed! Cause: " + e.getCause() + ", Details: " + e.getMessage());
+				LOGGER.log(Level.SEVERE, "Connecting to redis failed! Cause: " + e.getCause() + ", Details: " + e.getMessage());
+				Thread.sleep(retryInterval);
 			}
-			Thread.sleep(retryInterval);
 		}
 	}
 
@@ -166,7 +143,7 @@ public class WebController {
 		catch (Exception e) {
 			LOGGER.log(Level.SEVERE, "Exception has occured while fetching data! Cause: " + e.getCause() + ", Details: " + e.getMessage());
 			redisConnected = false;
-			retryThread();
+			connectThread();
 			return new ResponseEntity(null, HttpStatus.SERVICE_UNAVAILABLE);
 		}
 

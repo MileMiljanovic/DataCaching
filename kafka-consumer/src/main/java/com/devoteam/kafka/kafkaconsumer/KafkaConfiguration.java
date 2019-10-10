@@ -27,7 +27,7 @@ public class KafkaConfiguration {
 		
 		config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, url);
 		config.put(ConsumerConfig.GROUP_ID_CONFIG, "group_id");
-		//config.put(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, 15000);
+		config.put(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, 1800000);
 		config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 		config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 		
