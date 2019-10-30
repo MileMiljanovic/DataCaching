@@ -10,7 +10,7 @@ public class Main {
 	
 	public static final String HOST = "localhost";
 	public static final String PORT = "8080";
-	public static final Integer NO_RECORDS = 5000;
+	public static final Integer NO_RECORDS = 10000;
 
 	public static void main(String[] args) throws IOException {
 		// TODO Auto-generated method stub

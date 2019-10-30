@@ -19,7 +19,7 @@ public class Main {
 	
 	private final static String TOPIC = "redistopic";
 	private final static String BOOTSTRAP_SERVER = "localhost:9092";
-    private final static Integer RECORD_NUMBER = 100000;
+    private final static Integer RECORD_NUMBER = 10000;
 
 	@SuppressWarnings("unused")
 	public static void main(String[] args) throws ExecutionException, InterruptedException, JsonProcessingException {
