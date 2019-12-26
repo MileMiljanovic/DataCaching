@@ -4,15 +4,12 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.logging.ConsoleHandler;
-import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
-
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,9 +36,6 @@ public class WebController {
 	@Value("${spring.redis.retry.interval}")
 	private int retryInterval;
 	
-	@Value("${logging.file}")
-    private String loggingFile;
-	
 	@Value("${spring.log.level}")
     private String loggingLevel;
 	
@@ -63,7 +57,7 @@ public class WebController {
 		
 		LOGGER.setUseParentHandlers(false); //disable default handlers
 		Level level = Level.parse(loggingLevel);  //get logging level specified in properties
-		FileHandler handler = new FileHandler(loggingFile, true);
+		ConsoleHandler handler = new ConsoleHandler();
 		handler.setFormatter(new SimpleFormatter() {
             private static final String format = "[%1$tF %1$tT.%1$tL] [%2$-7s] %3$s %n";
 
@@ -77,10 +71,7 @@ public class WebController {
             }
         });
 		LOGGER.addHandler(handler);
-		ConsoleHandler chandler = new ConsoleHandler();
-		LOGGER.addHandler(chandler);
 		handler.setLevel(level);
-		chandler.setLevel(level);
 		LOGGER.setLevel(level);  //set the level to the one specified in properties
 	}
 	
@@ -120,7 +111,6 @@ public class WebController {
 		}
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@GetMapping(value = "/readItems/{id}")
 	public ResponseEntity<HashMap<String, String>> findItem(@PathVariable("id") final String id) throws InterruptedException {
 		
@@ -128,23 +118,23 @@ public class WebController {
 		
 		if (!redisConnected) {
 			LOGGER.log(Level.SEVERE, "Record with id: " + id + " not found because Redis is unavailable! Try again later.");
-			return new ResponseEntity(null, HttpStatus.SERVICE_UNAVAILABLE);
+			return new ResponseEntity<HashMap<String, String>>(HttpStatus.SERVICE_UNAVAILABLE);
 		}
 		
 		try {
 			HashMap<String, String> res = (HashMap<String, String>) jedis.hgetAll("user:" + id);
 			if (res.isEmpty()) {
 				LOGGER.log(Level.INFO, "Record with id " + id + " does not exist! Returning 404...");
-				return new ResponseEntity(null, HttpStatus.NOT_FOUND);
+				return new ResponseEntity<HashMap<String, String>>(HttpStatus.NOT_FOUND);
 			}
 			LOGGER.log(Level.INFO, "Record with id " + id + " found! Returning response...");
-			return new ResponseEntity(res, HttpStatus.OK);
+			return new ResponseEntity<HashMap<String, String>>(res, HttpStatus.OK);
 		}
 		catch (Exception e) {
 			LOGGER.log(Level.SEVERE, "Exception has occured while fetching data! Cause: " + e.getCause() + ", Details: " + e.getMessage());
 			redisConnected = false;
 			connectThread();
-			return new ResponseEntity(null, HttpStatus.SERVICE_UNAVAILABLE);
+			return new ResponseEntity<HashMap<String, String>>(HttpStatus.SERVICE_UNAVAILABLE);
 		}
 
 	}
