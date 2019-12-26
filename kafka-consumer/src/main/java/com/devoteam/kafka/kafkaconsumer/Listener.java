@@ -46,9 +46,6 @@ public class Listener {
 	@Value("${redis.retry.interval.ms}")
     private Integer retryInterval;
 	
-	@Value("${logging.file}")
-    private String loggingFile;
-	
 	@Value("${spring.log.level}")
     private String loggingLevel;
 	
@@ -102,7 +99,7 @@ public class Listener {
 		LOGGER.setUseParentHandlers(false);
 		Level level = Level.parse(loggingLevel);  //get logging level specified in properties
 		
-		FileHandler handler = new FileHandler(loggingFile, true);	//create new file handler, specify path and append flag
+		ConsoleHandler handler = new ConsoleHandler();	 //create a console handler and add it to the logger
 		handler.setFormatter(new SimpleFormatter() {
 			private static final String format = "[%1$tF %1$tT.%1$tL] [%2$-7s] %3$s %n";	//define log format
 
@@ -116,10 +113,7 @@ public class Listener {
             }
         });
 		LOGGER.addHandler(handler);	//add a file handler to the logger
-		ConsoleHandler chandler = new ConsoleHandler();	 //create a console handler and add it to the logger
-		LOGGER.addHandler(chandler);
 		handler.setLevel(level);	//set the logging level of the handler as specified in properties
-		chandler.setLevel(level);
 		LOGGER.setLevel(level);  //set the level to the one specified in properties
 	}
 	
