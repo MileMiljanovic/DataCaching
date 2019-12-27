@@ -18,7 +18,7 @@ public class UserResource {
 	private KafkaTemplate<String, String> kafkaTemplate;
 	
 	private static final String TOPIC = "redistopic";
-	private static final Integer RECORDS_COUNT = 100000;
+	private static final Integer RECORDS_COUNT = 1000;
 	
 	@Bean
 	public void post() throws InterruptedException, JsonProcessingException {
@@ -48,8 +48,8 @@ public class UserResource {
 			String json = objectMapper.writeValueAsString(m);
 
 			kafkaTemplate.send(TOPIC, json);
-			/*System.out.println("MESSAGE SENT!: " + json);
-			Thread.sleep(1000);*/
+			System.out.println("MESSAGE SENT!: " + json);
+			Thread.sleep(1000);
 		}
 		
 	}
